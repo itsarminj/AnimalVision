@@ -22,7 +22,7 @@ class Vision():
             _,frame = cap.read()
             hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
 
-            lower_red = np.array([150 150 50])
+            lower_red = np.array([150,150,50])
             upper_red = np.array([180,255,150])
 
             mask = cv2.inRange(hsv, lower_red,upper_red)
