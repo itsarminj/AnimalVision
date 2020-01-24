@@ -10,31 +10,32 @@ class Vision():
         # all the constants are set here
 
         self.filename = filename
+        self.frame = None
 
         # image params
         self.IMG_WIDTH = 256
         self.IMG_HEIGHT = 256
         self.IMG_CHANNELS = 1
 
-    def real_time(self):
+    def real_time(self, *args):
         cap = cv2.VideoCapture(0)
         if cap.isOpened():
             while True:
                 check, frame = cap.read()
+                self.check = check
+                self.frame = frame
+
+                frames = []
+                res =[]
+
+                for i in args:
+                    frames.append(np.array(i(frame=frame)))
+
+                frames = np.concatenate([frames[:]],axis=1)
+
+                cv2.imshow('lol', np.concatenate(frames, axis=1))
+
                 if check:
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-                    lower_blue = np.array([35, 140, 60])
-                    upper_blue = np.array([255, 255, 180])
-
-                    mask = cv2.inRange(hsv, lower_blue, upper_blue)
-                    res = cv2.bitwise_and(frame, frame, mask=mask)
-
-                    cv2.imshow('frame', frame)
-                    cv2.imshow('gray', gray)
-                    cv2.imshow('res', res)
-
                     key = cv2.waitKey(50)
                     if key == ord('q'):
                         break
@@ -86,6 +87,20 @@ class Vision():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+    def snake_vision(self, check = None, frame=None):
+        snake_filter = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        self.snakefilter = snake_filter
+        return snake_filter
+
+    def dog_vision(self, check = None, frame=None):
+        dog_filter = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.dogfilter = dog_filter
+        return dog_filter
+
+    def human(self, check = None, frame=None):
+        human = frame
+        self.human = human
+        return human
 
 
 
