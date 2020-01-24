@@ -18,26 +18,34 @@ class Vision():
 
     def real_time(self):
         cap = cv2.VideoCapture(0)
-        while True:
-            _,frame = cap.read()
-            hsv = cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+        if cap.isOpened():
+            while True:
+                check, frame = cap.read()
+                if check:
+                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-            lower_red = np.array([150,150,50])
-            upper_red = np.array([180,255,150])
+                    lower_blue = np.array([35, 140, 60])
+                    upper_blue = np.array([255, 255, 180])
 
-            mask = cv2.inRange(hsv, lower_red,upper_red)
-            res = cv2.bitwise_and(frame,frame,mask = mask)
+                    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+                    res = cv2.bitwise_and(frame, frame, mask=mask)
 
-            cv2.imshow('frame', frame)
-            cv2.imshow('res', res)
+                    cv2.imshow('frame', frame)
+                    cv2.imshow('gray', gray)
+                    cv2.imshow('res', res)
 
-            k = cv2.waitKey(5) & 0xFF
-            if k ==27:
-                break
-            cv2.destroyAllWindows()
-            cap.release()
+                    key = cv2.waitKey(50)
+                    if key == ord('q'):
+                        break
+                else:
+                    print('Frame not available')
+                    print(cap.isOpened())
 
-    def load_video(self, fname = None):
+        cv2.destroyAllWindows()
+        cap.release()
+
+    def load_video(self, fname=None):
         if fname is None and self.filename is None:
             assert False, 'Please specify a valid path to get the model from.'
         if fname is None:
