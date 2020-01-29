@@ -17,6 +17,7 @@ class Vision():
         self.IMG_HEIGHT = 256
         self.IMG_CHANNELS = 1
         self.kernel_size = (1, 1)
+        self.resize_percent = 100 # percent of original size
 
     def real_time(self, *args):
         cap = cv2.VideoCapture(0)
@@ -26,11 +27,17 @@ class Vision():
                 self.check = check
                 self.frame = frame
 
+                width = int(frame.shape[1] * self.resize_percent / 100)
+                height = int(frame.shape[0] * self.resize_percent / 100)
+                dim = (width, height)
+                # resize image
+                resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+
                 frames = []
                 res =[]
 
                 for i in args:
-                    temp = np.array(i(frame=frame))
+                    temp = np.array(i(frame=resized))
                     try:
                         temp = self.gaussian_blur(frame=temp)
                     except:
