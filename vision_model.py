@@ -47,7 +47,7 @@ class Vision():
 
                 frames = np.concatenate([frames[:]], axis=1)
 
-                cv2.imshow('lol', np.concatenate(frames, axis=1))
+                cv2.imshow('Vision', np.concatenate(frames, axis=1))
 
                 if check:
                     key = cv2.waitKey(50)
@@ -120,6 +120,21 @@ class Vision():
         blur = cv2.blur(frame, self.kernel_size)
         self.blur = blur
         return blur
+
+    def fisheye(self, frame = None):
+        K = np.array([[689.21, 0., 1295.56],
+                      [0., 690.48, 942.17],
+                      [0., 0., 1.]])
+        D = np.array([0., 0., 0., 0.])
+
+        # use Knew to scale the output
+        Knew = K.copy()
+        Knew[(0, 1), (0, 1)] = 0.4 * Knew[(0, 1), (0, 1)]
+
+        img_undistorted = cv2.fisheye.undistortImage(frame, K, D=D, Knew=Knew)
+        self.fisheye = img_undistorted
+        return img_undistorted
+
 
 
 
