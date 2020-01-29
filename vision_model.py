@@ -16,6 +16,7 @@ class Vision():
         self.IMG_WIDTH = 256
         self.IMG_HEIGHT = 256
         self.IMG_CHANNELS = 1
+        self.kernel_size = (1, 1)
 
     def real_time(self, *args):
         cap = cv2.VideoCapture(0)
@@ -29,9 +30,15 @@ class Vision():
                 res =[]
 
                 for i in args:
-                    frames.append(np.array(i(frame=frame)))
+                    temp = np.array(i(frame=frame))
+                    try:
+                        temp = self.gaussian_blur(frame=temp)
+                    except:
+                        pass
+                        print("Kernel didn't work")
+                    frames.append(temp)
 
-                frames = np.concatenate([frames[:]],axis=1)
+                frames = np.concatenate([frames[:]], axis=1)
 
                 cv2.imshow('lol', np.concatenate(frames, axis=1))
 
@@ -63,7 +70,7 @@ class Vision():
         cap.release()
         cv2.destroyAllWindows()
 
-    def load_image(self,fname = None):
+    def load_image(self, fname=None):
         if fname is None and self.filename is None:
             assert False, 'Please specify a valid path to get the model from.'
         if fname is None:
@@ -101,6 +108,12 @@ class Vision():
         human = frame
         self.human = human
         return human
+
+    def gaussian_blur(self, frame=None):
+        blur = cv2.blur(frame, self.kernel_size)
+        self.blur = blur
+        return blur
+
 
 
 
