@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+from skimage import color
+import inspect
 
 class Vision():
     """
@@ -21,6 +23,7 @@ class Vision():
 
     def real_time(self, *args):
         cap = cv2.VideoCapture(0)
+        i = 0
         if cap.isOpened():
             while True:
                 check, frame = cap.read()
@@ -33,26 +36,39 @@ class Vision():
                 # resize image
                 resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
 
+                # ------ UI --------
                 frames = []
                 res =[]
 
-                for i in args:
-                    temp = np.array(i(frame=resized))
-                    try:
-                        temp = self.gaussian_blur(frame=temp)
-                    except:
-                        pass
-                        print("Kernel didn't work")
-                    frames.append(temp)
+                ## -- OLD UI --- in case we need it
+                # for i in args:
+                #     temp = np.array(i(frame=resized))
+                #     try:
+                #         temp = self.gaussian_blur(frame=temp)
+                #     except:
+                #         pass
+                #     frames.append(temp)
+                #
+                # frames = np.concatenate([frames[:]], axis=1)
+                #
+                # cv2.imshow('Vision', np.concatenate(frames, axis=1))
 
-                frames = np.concatenate([frames[:]], axis=1)
-
-                cv2.imshow('Vision', np.concatenate(frames, axis=1))
-
+                cv2.imshow('Vision', np.array(args[i](frame=resized)))
                 if check:
                     key = cv2.waitKey(50)
                     if key == ord('q'):
                         break
+                    if key == ord('l'):
+                        if (i+1) != len(args):
+                            i = i+1
+                        else:
+                            i = 0
+                    if key == ord('h'):
+                        if (i-1) < 0:
+                            i = len(args)-1
+                        else:
+                            i = i-1
+
                 else:
                     print('Frame not available')
                     print(cap.isOpened())
@@ -135,7 +151,63 @@ class Vision():
         self.fisheye = img_undistorted
         return img_undistorted
 
+    def concat_tile_resize(self, im_list_2d, interpolation=cv2.INTER_CUBIC):
+        im_list_v = [self.hconcat_resize_min(im_list_h, interpolation=cv2.INTER_CUBIC) for im_list_h in im_list_2d]
+        return self.vconcat_resize_min(im_list_v, interpolation=cv2.INTER_CUBIC)
+
+    @staticmethod
+    def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+        h_min = min(im.shape[0] for im in im_list)
+        im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                          for im in im_list]
+        return cv2.hconcat(im_list_resize)
+
+    @staticmethod
+    def vconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+        w_min = min(im.shape[1] for im in im_list)
+        im_list_resize = [cv2.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
+                          for im in im_list]
+        return cv2.vconcat(im_list_resize)
+
+    @staticmethod
+    def rgb2gray(rgb):
+        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+
+    def fly(self, frame=None, size=(9, 8, 7, 6, 5, 6, 7, 8, 9)):
+        im1 = frame
+        tile_list = []
+
+        for i in size:
+            tile_list.append([im1]*i)
+
+        im_tile = self.concat_tile_resize(tile_list)
+
+        width = int(frame.shape[1])
+        height = int(frame.shape[0])
+        dim = (width, height)
+        # resize image to fir concatenation needs
+        im_tile_resize = cv2.resize(im_tile, dim, interpolation=cv2.INTER_AREA)
+
+        tile_size = np.shape(im_tile_resize)
+        overlay = np.zeros(tile_size, np.uint8)
+
+        # Ellipse Size
+        axesLength = (100, 50)
+        center_coordinates = (int(tile_size[1]/2), int(tile_size[0]/2))
+        axesLength = (int(tile_size[1]/2), int(tile_size[0]/2))
+        angle = 0
+        startAngle = 0
+        endAngle = 360
+        color = (255, 255, 255)  # BGR
+        thickness = -1
+
+        cv2.ellipse(overlay, center_coordinates, axesLength,
+                            angle, startAngle, endAngle, color, thickness, 8)
 
 
+        output = cv2.bitwise_and(im_tile_resize, overlay)
+
+        self.fly = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+        return cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
 
 
