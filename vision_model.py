@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 from skimage import color
 import inspect
+import math
+
 
 class Vision():
     """
@@ -36,6 +38,21 @@ class Vision():
                 # resize image
                 resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
 
+                #FOV effect
+                split1 = resized[:, np.r_[0:120]]
+                split2 = resized[:, np.r_[120:520]]
+                split3 = resized[:, np.r_[520:640]]
+
+                split1 = np.repeat(split1, 2, axis=1)
+                split1 = np.hsplit(split1, 2)[1]
+                split3 = np.repeat(split3, 2, axis=1)
+                split3 = np.hsplit(split3, 2)[0]
+
+                split1 = cv2.GaussianBlur(split1, (9,9), cv2.BORDER_DEFAULT)
+                split3 = cv2.GaussianBlur(split3, (9, 9), cv2.BORDER_DEFAULT)
+
+                img_final = np.concatenate([split1, split2, split3], axis=1)
+
                 # ------ UI --------
                 frames = []
                 res =[]
@@ -53,7 +70,10 @@ class Vision():
                 #
                 # cv2.imshow('Vision', np.concatenate(frames, axis=1))
 
-                cv2.imshow('Vision', np.array(args[i](frame=resized)))
+                # cv2.imshow('Vision', np.array(args[i](frame=resized)))
+
+                cv2.imshow('Vision', np.array(args[i](frame=img_final)))
+
                 if check:
                     key = cv2.waitKey(50)
                     if key == ord('q'):
