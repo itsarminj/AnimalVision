@@ -47,7 +47,7 @@ def show_frame():
     # -- GUI --
 
     # Image
-    frame_post = np.array(args[counter](frame=resized))
+    frame_post = np.array(args[counter](frame=resized)).astype(np.uint8)
     # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
     img = Image.fromarray(frame_post)
     imgtk = ImageTk.PhotoImage(image=img)

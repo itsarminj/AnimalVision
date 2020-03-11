@@ -9,6 +9,8 @@ import sys
 import PIL
 import tkinter as tk
 from PIL import Image, ImageTk
+import matplotlib as mpl
+import matplotlib.cm as mtpltcm
 
 
 class Vision():
@@ -184,7 +186,18 @@ class Vision():
         cv2.destroyAllWindows()
 
     def Snake(self, check = None, frame=None):
-        snake_filter = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        # initialize the colormap (jet)
+        colormap = mpl.cm.jet_r
+        # add a normalization
+        cNorm = mpl.colors.Normalize(vmin=0, vmax=255)
+        # init the mapping
+        scalarMap = mtpltcm.ScalarMappable(norm=cNorm, cmap=colormap)
+        # ...
+        # in the main display loop:
+        snake_filter = scalarMap.to_rgba(frame)
+        snake_filter = (snake_filter)*255
         self.snakefilter = snake_filter
         return snake_filter
 
