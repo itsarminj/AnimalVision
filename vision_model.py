@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision #,new_drawtriangle,drawtriangle
+from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV #,new_drawtriangle,drawtriangle
 import math
 import scipy.misc
 import time
@@ -189,9 +189,31 @@ class Vision():
         return snake_filter
 
     def Dog(self, check = None, frame=None):
-        dog_filter = frame
-        self.dogfilter = dog_filter
-        return dog_filter
+        depth = cv2.getTrackbarPos(self.trackbar_name2, self.title_window)  # for color transformation
+        try:
+            gamma = 1 / (depth + 1)  # for changing light
+        except:
+            gamma = 0
+        width = int(frame.shape[1] * self.resize_percent / 100)
+        height = int(frame.shape[0] * self.resize_percent / 100)
+        dim = (width, height)
+        frame = increase_brightness(frame, 20)  # fish have bigger eyes, they collect more light
+        frame = adjust_gamma(frame, gamma)  # changes gamma(light) depending on depth
+        dogvision = frame
+        frame_rgb = dogvision[:, :, ::-1]
+        img = scipy.misc.toimage(frame_rgb)
+        outfile = 'frame.jpg'
+        cbmat = self.cbmats[self.ix]
+        imgx = img.convert('RGB', cbmat)
+        imgx.save(outfile)
+        dogvision = np.asarray(PIL.Image.open(outfile))
+        dogvision = dogvision[:, :, ::-1]
+
+        # FOV effect
+        delta = cv2.getTrackbarPos(self.trackbar_name, self.title_window)  # for changing the angle
+        frame = FOV(frame, width, height, delta)  # changes the field of view
+        self.dogvision = frame
+        return frame
 
     def Human(self, check = None, frame=None):
         human = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -262,6 +284,36 @@ class Vision():
         self.fishvision = fishvision
         return fishvision
 
+    def image_resize(image, width=None, height=None, inter=cv2.INTER_AREA):
+        # initialize the dimensions of the image to be resized and
+        # grab the image size
+        dim = None
+        (h, w) = image.shape[:2]
+
+        # if both the width and height are None, then return the
+        # original image
+        if width is None and height is None:
+            return image
+
+        # check to see if the width is None
+        if width is None:
+            # calculate the ratio of the height and construct the
+            # dimensions
+            r = height / float(h)
+            dim = (int(w * r), height)
+
+        # otherwise, the height is None
+        else:
+            # calculate the ratio of the width and construct the
+            # dimensions
+            r = width / float(w)
+            dim = (width, int(h * r))
+
+        # resize the image
+        resized = cv2.resize(image, dim, interpolation=inter)
+
+        # return the resized image
+        return resized
 
     def Horse(self, check=None, frame=None):
         delta = 50 # for changing the angle
