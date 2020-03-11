@@ -1,8 +1,14 @@
 import numpy as np
 import cv2
-from skimage import color
-import inspect
+from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision #,new_drawtriangle,drawtriangle
 import math
+import scipy.misc
+import time
+from PIL import Image
+import sys
+import PIL
+import tkinter as tk
+from PIL import Image, ImageTk
 
 
 class Vision():
@@ -10,11 +16,12 @@ class Vision():
     Class to call to create each model of visualization
     """
 
-    def __init__(self, filename):
+    def __init__(self, lmain):
         # all the constants are set here
 
-        self.filename = filename
         self.frame = None
+        self.lmain = lmain
+
 
         # image params
         self.IMG_WIDTH = 256
@@ -22,79 +29,118 @@ class Vision():
         self.IMG_CHANNELS = 1
         self.kernel_size = (1, 1)
         self.resize_percent = 100 # percent of original size
+        self.dim = 0
+        self.ix = 3
+        self.cbmats = (
+    (0.202001295331, 0.991720719265, -0.193722014597, 0,
+    0.163800203026, 0.792663865514, 0.0435359314602, 0,
+    0.00913336570448, -0.0132684300993, 1.00413506439, 0),
+
+    (0.430749076295, 0.717402505462, -0.148151581757, 0,
+    0.336582831043, 0.574447762213, 0.0889694067435, 0,
+    -0.0236572929497, 0.0275635332006, 0.996093759749, 0),
+
+    (0.971710712275, 0.112392320487, -0.0841030327623, 0,
+    0.0219508442818, 0.817739672383, 0.160309483335, 0,
+    -0.0628595877201, 0.880724870686, 0.182134717034, 0),
+
+    (0.316086131719, 0.854894118151, -0.170980249869, 0,
+    0.250572926562, 0.683189199376, 0.0662378740621, 0,
+    -0.00735450321111, 0.00718184676374, 1.00017265645, 0),
+
+    (0.299, 0.587, 0.114, 0,
+    0.299, 0.587, 0.114, 0,
+    0.299, 0.587, 0.114, 0),
+
+    (0.340841450085, 0.580912815482, 0.0782457344332, 0,
+    0.340841450085, 0.580912815482, 0.0782457344332, 0,
+    0.340841450085, 0.580912815482, 0.0782457344332, 0),
+
+    (0.150317227739, 0.722407271325, 0.127275500935, 0,
+    0.150317227739, 0.722407271325, 0.127275500935, 0,
+    0.150317227739, 0.722407271325, 0.127275500935, 0),
+
+    (0.0336717653952, 0.114595364984, 0.851732869621, 0,
+    0.0336717653952, 0.114595364984, 0.851732869621, 0,
+    0.0336717653952, 0.114595364984, 0.851732869621, 0)
+    )
+        # CREATE THE BARS
+        # FOR ANGLE BAR
+        self.alpha = 70
+        self.alpha_slider_max = 90
+        self.title_window = 'Delta Linear Blend'
+        cv2.namedWindow(self.title_window, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.title_window, 600, 200)
+        self.trackbar_name = 'Delta x %d' % self.alpha_slider_max
+
+        def on_trackbar(val):
+            alpha = val / self.alpha_slider_max
+            beta = (1.0 - alpha)
+            # dst = cv2.addWeighted(src1, alpha, src2, beta, 0.0)
+            cv2.imshow(self.title_window, 3)
+
+        cv2.createTrackbar(self.trackbar_name, self.title_window, 70, self.alpha_slider_max, on_trackbar)
+        # Show some stuff
+        on_trackbar(0)
+
+        # FOR DEPTH BAR
+        self.depth = 0  # meters
+        self.alpha_slider_max2 = 10  # m  complete darkness
+        self.title_window2 = 'Depth linear blend'
+        cv2.namedWindow(self.title_window)
+        self.trackbar_name2 = 'Depth x %d' % self.alpha_slider_max2
+
+        def on_trackbar2(val):
+            alpha2 = val / self.alpha_slider_max2
+            beta2 = (1.0 - self.depth)
+            # dst = cv2.addWeighted(src1, alpha, src2, beta, 0.0)
+            cv2.imshow(self.title_window, 3)
+
+        cv2.createTrackbar(self.trackbar_name2, self.title_window, 0, self.alpha_slider_max2, on_trackbar2)
+        # Show some stuff
+        on_trackbar2(0)
+
+    def on_trackbar(self,val):
+        alpha = val / self.alpha_slider_max
+        beta = ( 1.0 - alpha )
+        #dst = cv2.addWeighted(src1, alpha, src2, beta, 0.0)
+        cv2.imshow(self.title_window, 3)
 
     def real_time(self, *args):
-        cap = cv2.VideoCapture(0)
+        camera_index = 0
+        cap = cv2.VideoCapture(cv2.CAP_DSHOW)
         i = 0
         if cap.isOpened():
-            while True:
-                check, frame = cap.read()
-                self.check = check
-                self.frame = frame
+            check, frame = cap.read()
+            self.check = check
+            self.frame = frame
 
-                width = int(frame.shape[1] * self.resize_percent / 100)
-                height = int(frame.shape[0] * self.resize_percent / 100)
-                dim = (width, height)
-                # resize image
-                resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+            width = int(frame.shape[1] * self.resize_percent / 100)
+            height = int(frame.shape[0] * self.resize_percent / 100)
+            dim = (width, height)
+            # resize image
+            resized = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
 
-                #FOV effect
-                split1 = resized[:, np.r_[0:120]]
-                split2 = resized[:, np.r_[120:520]]
-                split3 = resized[:, np.r_[520:640]]
+            #FOV effect
+            split1 = resized[:, np.r_[0:120]]
+            split2 = resized[:, np.r_[120:520]]
+            split3 = resized[:, np.r_[520:640]]
 
-                split1 = np.repeat(split1, 2, axis=1)
-                split1 = np.hsplit(split1, 2)[1]
-                split3 = np.repeat(split3, 2, axis=1)
-                split3 = np.hsplit(split3, 2)[0]
+            split1 = np.repeat(split1, 2, axis=1)
+            split1 = np.hsplit(split1, 2)[1]
+            split3 = np.repeat(split3, 2, axis=1)
+            split3 = np.hsplit(split3, 2)[0]
 
-                split1 = cv2.GaussianBlur(split1, (9,9), cv2.BORDER_DEFAULT)
-                split3 = cv2.GaussianBlur(split3, (9, 9), cv2.BORDER_DEFAULT)
+            # split1 = cv2.GaussianBlur(split1, (9,9), cv2.BORDER_DEFAULT)
+            # split3 = cv2.GaussianBlur(split3, (9, 9), cv2.BORDER_DEFAULT)
 
-                img_final = np.concatenate([split1, split2, split3], axis=1)
+            img_final = np.concatenate([split1, split2, split3], axis=1)
+            img = Image.fromarray(np.array(args[i](frame=img_final)))
+            imgtk = ImageTk.PhotoImage(image=img)
+            self.lmain.imgtk = imgtk
+            self.lmain.configure(image=imgtk)
+            self.lmain.after(50, self.real_time(*args))
 
-                # ------ UI --------
-                frames = []
-                res =[]
-
-                ## -- OLD UI --- in case we need it
-                # for i in args:
-                #     temp = np.array(i(frame=resized))
-                #     try:
-                #         temp = self.gaussian_blur(frame=temp)
-                #     except:
-                #         pass
-                #     frames.append(temp)
-                #
-                # frames = np.concatenate([frames[:]], axis=1)
-                #
-                # cv2.imshow('Vision', np.concatenate(frames, axis=1))
-
-                # cv2.imshow('Vision', np.array(args[i](frame=resized)))
-
-                cv2.imshow('Vision', np.array(args[i](frame=img_final)))
-
-                if check:
-                    key = cv2.waitKey(50)
-                    if key == ord('q'):
-                        break
-                    if key == ord('l'):
-                        if (i+1) != len(args):
-                            i = i+1
-                        else:
-                            i = 0
-                    if key == ord('h'):
-                        if (i-1) < 0:
-                            i = len(args)-1
-                        else:
-                            i = i-1
-
-                else:
-                    print('Frame not available')
-                    print(cap.isOpened())
-
-        cv2.destroyAllWindows()
-        cap.release()
 
     def load_video(self, fname=None):
         if fname is None and self.filename is None:
@@ -137,18 +183,18 @@ class Vision():
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-    def snake_vision(self, check = None, frame=None):
+    def Snake(self, check = None, frame=None):
         snake_filter = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         self.snakefilter = snake_filter
         return snake_filter
 
-    def dog_vision(self, check = None, frame=None):
-        dog_filter = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    def Dog(self, check = None, frame=None):
+        dog_filter = frame
         self.dogfilter = dog_filter
         return dog_filter
 
-    def human(self, check = None, frame=None):
-        human = frame
+    def Human(self, check = None, frame=None):
+        human = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.human = human
         return human
 
@@ -193,7 +239,61 @@ class Vision():
     def rgb2gray(rgb):
         return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
 
-    def fly(self, frame=None, size=(9, 8, 7, 6, 5, 6, 7, 8, 9)):
+    def sharpening(self, check=None, frame=None):
+        kernel_sharpening = np.array([[-1,-1,-1], [-1, 11,-1],[-1,-1,-1]])
+        sharpening_filter = cv2.filter2D(frame, -1, kernel_sharpening)
+        self.sharpeningfilter = sharpening_filter
+        return sharpening_filter
+        #color transformation , object detection pretrained networ
+
+    def Fish(self, check=None, frame=None):
+        delta = cv2.getTrackbarPos(self.trackbar_name, self.title_window) # for changing the angle
+        depth = cv2.getTrackbarPos(self.trackbar_name2, self.title_window) #for color transformation
+        gamma=1/(depth+1) #for changing light
+        width = int(frame.shape[1] * self.resize_percent / 100)
+        height = int(frame.shape[0] * self.resize_percent / 100)
+        dim = (width, height)
+        width = dim[0] #width of the window
+        height = dim[1] #height of the window
+        frame = binocular_vision(frame,width,height,delta) #changes the field of view
+        frame = increase_brightness(frame,20) #fish have bigger eyes, they collect more light
+        frame = adjust_gamma(frame, gamma) #changes gamma(light) depending on depth
+        fishvision = frame
+        self.fishvision = fishvision
+        return fishvision
+
+
+    def Horse(self, check=None, frame=None):
+        delta = 50 # for changing the angle
+        depth = cv2.getTrackbarPos(self.trackbar_name2, self.title_window) #for color transformation
+        try:
+            gamma=1/(depth+1) #for changing light
+        except:
+            gamma = 0
+        width = int(frame.shape[1] * self.resize_percent / 100)
+        height = int(frame.shape[0] * self.resize_percent / 100)
+        dim = (width, height)
+        width=dim[0] #width of the window
+        height=dim[1] #height of the window
+        frame = horse_binocular_vision(frame,width,height,delta) #changes the field of view
+        frame = increase_brightness(frame,20) #fish have bigger eyes, they collect more light
+        frame = adjust_gamma(frame, gamma) #changes gamma(light) depending on depth
+        horsevision = frame
+        frame_rgb = horsevision[:, :, ::-1]
+        img = scipy.misc.toimage(frame_rgb)
+        outfile='frame.jpg'
+        #img = Image.open(r"/Users/umutfidan/Desktop/AnimalVision-master4/frame.jpg")
+        cbmat = self.cbmats[self.ix]
+        imgx = img.convert('RGB',cbmat)
+        #dog_filter = np.asarray(imgx, dtype="int32" )
+        imgx.save(outfile)
+        #exit()
+        horsevision = np.asarray(PIL.Image.open(outfile))
+        horsevision = horsevision[:, :, ::-1]
+        self.horsevision = horsevision
+        return horsevision
+
+    def Fly(self, frame=None, size=(9, 8, 7, 6, 5, 6, 7, 8, 9)):
         im1 = frame
         tile_list = []
 
