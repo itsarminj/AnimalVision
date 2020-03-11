@@ -26,7 +26,6 @@ def sharpening(img):
     return img
     #color transformation , object detection pretrained network
 
-
 def binocular_vision(image,width,height,delta):
     maxangle=(math.atan(height/(width/2)))
     delta=math.radians(delta)  #for easier operation
@@ -49,29 +48,30 @@ def binocular_vision(image,width,height,delta):
     mask3 = np.zeros(image.shape, dtype=np.uint8)
     # mask defaulting to black for 3-channel and transparent for 4-channel
     #print(image.shape)
-
-    ignore_mask_color = (255,)*3 #choose channels or weights for the color transformation
-    sharpening(cv2.fillPoly(mask1, roi_corners1, ignore_mask_color)) # fill the ROI so it doesn't get wiped out when the mask is applied
+    ignore_mask_color = (255,) * 3  # choose channels or weights for the color transformation
+    cv2.fillPoly(mask1, roi_corners1,
+                            ignore_mask_color)  # fill the ROI so it doesn't get wiped out when the mask is applied
     # from Masterfool: use cv2.fillConvexPoly if you know it's convex
     # apply the mask
     masked_image1 = (cv2.bitwise_and(image, mask1))
+    masked_image1 = cv2.blur(masked_image1, (9, 9))
 
-    #roi_corners = np.array([[(width,0), (width/2,height), (width,height)]], dtype=np.int32)
+    # roi_corners = np.array([[(width,0), (width/2,height), (width,height)]], dtype=np.int32)
     # fill the ROI so it doesn't get wiped out when the mask is applied
-    ignore_mask_color = (255,)*2#channel_count
-    cv2.blur(cv2.fillPoly(mask2, roi_corners2, ignore_mask_color),(50,50))
+    ignore_mask_color = (255,) * 3  # channel_count
+    cv2.fillPoly(mask2, roi_corners2, ignore_mask_color)
     # from Masterfool: use cv2.fillConvexPoly if you know it's convex
     # apply the mask
     masked_image2 = (cv2.bitwise_and(image, mask2))
+    masked_image2 = cv2.blur(masked_image2, (9, 9))
 
-    #dst=cv2.add(masked_image1,masked_image2)
+    # roi_corners = np.array([[(0,0), (width/2,height), (width,0)]], dtype=np.int32)
+    ignore_mask_color = (255,) * 3
+    cv2.fillPoly(mask3, roi_corners3, ignore_mask_color)
+    masked_image3 = sharpening(cv2.bitwise_and(mask3, image))
 
-    #roi_corners = np.array([[(0,0), (width/2,height), (width,0)]], dtype=np.int32)
-    ignore_mask_color = (255,)*3
-    sharpening(cv2.fillPoly(mask3, roi_corners3, ignore_mask_color))
-    masked_image3 = (cv2.bitwise_and(mask3,image))
-    dst = cv2.add(masked_image1,masked_image2)
-    dst=masked_image3
+    dst = cv2.add(masked_image1, masked_image2)
+    dst = cv2.add(dst, masked_image3)
     return dst
 
 def horse_binocular_vision(image,width,height,delta):
@@ -225,3 +225,49 @@ def sharpening_FOV(img):
     img = cv2.GaussianBlur(img, (9, 9), cv2.BORDER_DEFAULT)
     return img
     #color transformation , object detection pretrained network
+
+
+def slug_binocular_vision(image,width,height,delta):
+    maxangle=(math.atan(height/(width/2)))
+    delta=math.radians(delta)  #for easier operation
+    #print(maxangle) #48degrees
+    if abs(delta - maxangle) < math.radians(10):
+        roi_corners1 = np.array([[(0,0), (width/2,height), (0,height)]], dtype=np.int32) #Order of corners is also important for more than 3 corners!!!
+        roi_corners2 = np.array([[(width,0), (width/2,height), (width,height)]], dtype=np.int32)
+        roi_corners3 = np.array([[(0,0), (width/2,height), (width,0)]], dtype=np.int32)
+    elif delta>maxangle:
+        roi_corners1 = np.array([[(0,0), (0,height),(width/2,height),(width/2-height/math.tan(delta),0)]], dtype=np.int32)
+        roi_corners2 = np.array([[(width/2+height/math.tan(delta),0),(width,0),(width,height),(width/2,height)]], dtype=np.int32)
+        roi_corners3 = np.array([[(width/2-height/math.tan(delta),0), (width/2,height), (width/2+height/math.tan(delta),0)]], dtype=np.int32)
+    elif delta<maxangle:
+        roi_corners1 = np.array([[(0, height-(width/2)*math.tan(delta)), (0,height), (width/2,height)]], dtype=np.int32)
+        roi_corners2 = np.array([[(width, height-(width/2)*math.tan(delta)), (width,height), (width/2,height)]], dtype=np.int32)
+        roi_corners3 = np.array([[(0,0),(0, height-(width/2)*math.tan(delta)),(width/2,height),(width, height-(width/2)*math.tan(delta)),(width,0)]], dtype=np.int32)
+    channel_count = image.shape[2]  # i.e. 3 rgb
+    mask = np.zeros(image.shape, dtype=np.uint8)
+
+    ignore_mask_color = (255,)*0 #choose channels or weights for the color transformation
+    sharpening(cv2.fillPoly(mask, roi_corners1, ignore_mask_color)) # fill the ROI so it doesn't get wiped out when the mask is applied
+    # from Masterfool: use cv2.fillConvexPoly if you know it's convex
+    # apply the mask
+    #masked_image1 = (cv2.bitwise_and(image, mask))
+
+    #roi_corners = np.array([[(width,0), (width/2,height), (width,height)]], dtype=np.int32)
+    # fill the ROI so it doesn't get wiped out when the mask is applied
+    ignore_mask_color = (255,)*0#channel_count
+    (cv2.fillPoly(mask, roi_corners2, ignore_mask_color),(20,20))
+    # from Masterfool: use cv2.fillConvexPoly if you know it's convex
+    # apply the mask
+    #masked_image2 = (cv2.bitwise_and(image, mask))
+
+    #roi_corners = np.array([[(0,0), (width/2,height), (width,0)]], dtype=np.int32)
+    ignore_mask_color = (255,)*3
+    sharpening(cv2.fillPoly(mask, roi_corners3, ignore_mask_color))
+
+    roi_corners4 = np.array([[(width/2-440, 0), (width/2+440, 0), (width/2,height/2+90)]], dtype=np.int32)
+    ignore_mask_color = (255,)*0
+    sharpening(cv2.fillPoly(mask, roi_corners4, ignore_mask_color))
+    masked_image3 = (cv2.bitwise_and(image, mask))
+    #dst = cv2.add(masked_image1,masked_image2,masked_image3)
+    dst=masked_image3
+    return dst

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import tkinter as tk
 # import Image, ImageTk
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageEnhance
 from vision_model import Vision
 
 #Set up GUI
@@ -26,7 +26,7 @@ display2.grid(row=0, column=1) #Display 2
 cap = cv2.VideoCapture(0)
 model = Vision(display1)
 
-args = (model.Human, model.Fly, model.Dog, model.Snake, model.Horse, model.Fish)
+args = (model.Human, model.Fly, model.Dog, model.Snake, model.Horse, model.Fish, model.Slug, model.Rat)
 
 global counter
 counter = 0
@@ -48,6 +48,7 @@ def show_frame():
 
     # Image
     frame_post = np.array(args[counter](frame=resized)).astype(np.uint8)
+
     # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
     img = Image.fromarray(frame_post)
     imgtk = ImageTk.PhotoImage(image=img)
@@ -130,6 +131,17 @@ def nclick_Fly():
         if i.__name__ == 'Fly':
             counter = k
 
+def nclick_Slug():
+    global counter
+    for k, i in enumerate(args):
+        if i.__name__ == 'Slug':
+            counter = k
+
+def nclick_Rat():
+    global counter
+    for k, i in enumerate(args):
+        if i.__name__ == 'Rat':
+            counter = k
 
 next_button = tk.Button(controlFrame, text='{message:{fill}{align}{width}}'.format(
         message="next",

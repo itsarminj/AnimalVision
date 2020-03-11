@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV #,new_drawtriangle,drawtriangle
+from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV,slug_binocular_vision #,new_drawtriangle,drawtriangle
 import math
 import scipy.misc
 import time
@@ -348,7 +348,7 @@ class Vision():
         img = scipy.misc.toimage(frame_rgb)
         outfile='frame.jpg'
         #img = Image.open(r"/Users/umutfidan/Desktop/AnimalVision-master4/frame.jpg")
-        cbmat = self.cbmats[self.ix]
+        cbmat = self.cbmats[0]
         imgx = img.convert('RGB',cbmat)
         #dog_filter = np.asarray(imgx, dtype="int32" )
         imgx.save(outfile)
@@ -394,5 +394,45 @@ class Vision():
 
         self.fly = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
         return cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+
+    def Slug(self, check = None, frame=None):
+        frame=cv2.blur(frame, (50,50))
+        width = int(frame.shape[1] * self.resize_percent / 100)
+        height = int(frame.shape[0] * self.resize_percent / 100)
+        dim = (width, height)
+        width=dim[0] #width of the window
+        height=dim[1] #height of the window
+        delta=38
+        frame = slug_binocular_vision(frame,width,height,delta) #changes the field of view
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        slugvision=frame
+        self.slugvision = slugvision
+        return slugvision
+
+    def Rat(self, check = None, frame=None):
+        ix=0; # doesnt have red cones
+        satadj=0.6
+        frame_rgb = frame[:, :, ::-1]
+        img = scipy.misc.toimage(frame_rgb)
+        width = int(frame.shape[1] * self.resize_percent / 100)
+        height = int(frame.shape[0] * self.resize_percent / 100)
+        outfile='frame.jpg'
+        #img = Image.open(r"/Users/umutfidan/Desktop/AnimalVision-master4/frame.jpg")
+        cbmat = self.cbmats[0]
+        imgx = img.convert('RGB',cbmat)
+        converter = PIL.ImageEnhance.Color(imgx)
+        imgx = converter.enhance(satadj)
+        #dog_filter = np.asarray(imgx, dtype="int32" )
+        imgx.save(outfile)
+        #exit()
+        rat_filter = np.asarray(PIL.Image.open(outfile))
+        rat_filter = rat_filter[:, :, ::-1]
+        ratvision=rat_filter
+        # FOV effect
+        delta = cv2.getTrackbarPos(self.trackbar_name, self.title_window)  # for changing the angle
+        ratvision = FOV(ratvision, width, height, delta)  # changes the field of view
+
+        self.ratvision = ratvision
+        return ratvision
 
 
