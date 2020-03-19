@@ -1,14 +1,10 @@
 import numpy as np
 import cv2
 from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV,slug_binocular_vision,put_triangle #,new_drawtriangle,drawtriangle
-import math
 import scipy.misc
-import time
 from PIL import Image
-import sys
 import PIL
 from PIL import ImageEnhance
-import tkinter as tk
 from PIL import Image, ImageTk
 import matplotlib as mpl
 import matplotlib.cm as mtpltcm
