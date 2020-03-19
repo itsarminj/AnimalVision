@@ -90,36 +90,54 @@ def horse_binocular_vision(image,width,height,delta):
         roi_corners1 = np.array([[(0, height-(width/2)*math.tan(delta)), (0,height), (width/2,height)]], dtype=np.int32)
         roi_corners2 = np.array([[(width, height-(width/2)*math.tan(delta)), (width,height), (width/2,height)]], dtype=np.int32)
         roi_corners3 = np.array([[(0,0),(0, height-(width/2)*math.tan(delta)),(width/2,height),(width, height-(width/2)*math.tan(delta)),(width,0)]], dtype=np.int32)
-    channel_count = image.shape[2]  # i.e. 3 rgb
-    mask = np.zeros(image.shape, dtype=np.uint8)
-    # mask defaulting to black for 3-channel and transparent for 4-channel
-    #print(image.shape)
-    ignore_mask_color = (255,)*3 #choose channels or weights for the color transformation
-    sharpening(cv2.fillPoly(mask, roi_corners1, ignore_mask_color)) # fill the ROI so it doesn't get wiped out when the mask is applied
-    # from Masterfool: use cv2.fillConvexPoly if you know it's convex
-    # apply the mask
-    #masked_image1 = (cv2.bitwise_and(image, mask))
+    mask1 = np.zeros(image.shape, dtype=np.uint8)
+    mask2 = np.zeros(image.shape, dtype=np.uint8)
+    mask3 = np.zeros(image.shape, dtype=np.uint8)
 
-    #roi_corners = np.array([[(width,0), (width/2,height), (width,height)]], dtype=np.int32)
-    # fill the ROI so it doesn't get wiped out when the mask is applied
+    '''ignore_mask_color = (255,)*3 #choose channels or weights for the color transformation
+    (cv2.fillPoly(mask, roi_corners1, ignore_mask_color)) # fill the ROI so it doesn't get wiped out when the mask is applied
     ignore_mask_color = (255,)*3#channel_count
     cv2.blur(cv2.fillPoly(mask, roi_corners2, ignore_mask_color),(20,20))
-    # from Masterfool: use cv2.fillConvexPoly if you know it's convex
-    # apply the mask
-    #masked_image2 = (cv2.bitwise_and(image, mask))
-
-    #roi_corners = np.array([[(0,0), (width/2,height), (width,0)]], dtype=np.int32)
     ignore_mask_color = (255,)*channel_count
-    sharpening(cv2.fillPoly(mask, roi_corners3, ignore_mask_color))
+    (cv2.fillPoly(mask, roi_corners3, ignore_mask_color))'''
 
-    roi_corners4 = np.array([[(width/2-100, height), (width/2+100, height), (width/2,height/2-100)]], dtype=np.int32)
-    ignore_mask_color = (255,)*0
-    sharpening(cv2.fillPoly(mask, roi_corners4, ignore_mask_color))
-    masked_image3 = (cv2.bitwise_and(image, mask))
-    #dst = cv2.add(masked_image1,masked_image2,masked_image3)
-    dst=masked_image3
+    ignore_mask_color = (255,)*3
+    roi_corners5 = np.array([[(0, height),(width/2-200, height),(width/2-200, 0),(0, 0)]], dtype=np.int32)
+    roi_corners6 = np.array([[(width/2-200, height), (width/2+200, height), (width/2+200,0),(width/2-200,0)]], dtype=np.int32)
+    roi_corners7 = np.array([[(width/2+200, height), (width, height), (width,0),(width/2+200,0)]], dtype=np.int32)
+
+    cv2.fillPoly(mask1, roi_corners5, ignore_mask_color),(50,50)
+    masked_image1 = cv2.bitwise_and(image, mask1)
+    masked_image1 = cv2.blur(masked_image1, (20,20))
+
+    cv2.fillPoly(mask2, roi_corners6, ignore_mask_color),(50,50)
+    masked_image2 = cv2.bitwise_and(image, mask2)
+    masked_image2 = sharpening(masked_image2)
+
+    cv2.fillPoly(mask3, roi_corners7, ignore_mask_color),(50,50)
+    masked_image3 = cv2.bitwise_and(image, mask3)
+    masked_image3 = cv2.blur(masked_image3, (20, 20))
+
+    dst = cv2.add(masked_image2,masked_image1)
+    dst= cv2.add(masked_image3,dst)
     return dst
 
+def put_triangle(image,width,height,delta):
+    channel_count = image.shape[2]  # i.e. 3 rgb
+    mask=np.zeros(image.shape, dtype=np.uint8)
+    mask0 = np.zeros(image.shape, dtype=np.uint8)
+    roi_corners3 = np.array([[(width/2-100, height), (width/2+100, height), (width/2,height/2-100)]], dtype=np.int32)
+    roi_corners4 = np.array([[(0,0),(0,height),(width/2-100, height),(width/2,height/2-100),(width/2+100, height),(width,height),(width,0)]], dtype=np.int32)
+
+    ignore_mask_color = (255,)*0
+    cv2.fillPoly(mask, roi_corners3, ignore_mask_color)
+    masked_image = cv2.bitwise_and(image, mask)
+
+    ignore_mask_color = (255,)*3
+    cv2.fillPoly(mask0, roi_corners4, ignore_mask_color)
+    masked_image0 = cv2.bitwise_and(image, mask0)
+    dst = cv2.add(masked_image0,masked_image)
+    return dst
 '''#GARBAGE
 def drawtriangle(img,dim,delta):
     w=dim[0]

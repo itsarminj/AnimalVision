@@ -1,12 +1,13 @@
 import numpy as np
 import cv2
-from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV,slug_binocular_vision #,new_drawtriangle,drawtriangle
+from functions import increase_brightness, binocular_vision,adjust_gamma,horse_binocular_vision, FOV,slug_binocular_vision,put_triangle #,new_drawtriangle,drawtriangle
 import math
 import scipy.misc
 import time
 from PIL import Image
 import sys
 import PIL
+from PIL import ImageEnhance
 import tkinter as tk
 from PIL import Image, ImageTk
 import matplotlib as mpl
@@ -343,6 +344,7 @@ class Vision():
         frame = horse_binocular_vision(frame,width,height,delta) #changes the field of view
         frame = increase_brightness(frame,20) #fish have bigger eyes, they collect more light
         frame = adjust_gamma(frame, gamma) #changes gamma(light) depending on depth
+        frame = put_triangle(frame,width,height,delta)
         horsevision = frame
         frame_rgb = horsevision[:, :, ::-1]
         img = scipy.misc.toimage(frame_rgb)
@@ -428,11 +430,10 @@ class Vision():
         rat_filter = np.asarray(PIL.Image.open(outfile))
         rat_filter = rat_filter[:, :, ::-1]
         ratvision=rat_filter
+        ratvision=cv2.blur(ratvision, (25,25))
         # FOV effect
         delta = cv2.getTrackbarPos(self.trackbar_name, self.title_window)  # for changing the angle
         ratvision = FOV(ratvision, width, height, delta)  # changes the field of view
 
         self.ratvision = ratvision
         return ratvision
-
-
