@@ -1,4 +1,4 @@
-﻿﻿# ECE 191 - Animal Vision 
+﻿# ECE 191 - Animal Vision
 
 ## Organization
 
