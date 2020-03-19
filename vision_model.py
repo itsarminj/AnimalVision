@@ -415,7 +415,6 @@ class Vision():
         width = int(frame.shape[1] * self.resize_percent / 100)
         height = int(frame.shape[0] * self.resize_percent / 100)
         outfile='frame.jpg'
-        #img = Image.open(r"/Users/umutfidan/Desktop/AnimalVision-master4/frame.jpg")
         cbmat = self.cbmats[0]
         imgx = img.convert('RGB',cbmat)
         converter = PIL.ImageEnhance.Color(imgx)
