@@ -1,8 +1,9 @@
-﻿# ECE 191 - Animal Vision 
+﻿﻿# ECE 191 - Animal Vision 
 
 ## Organization
 
 model: vision.py and functions.py 
+
 user to run: runscipt.py
 
 ## Requirements
